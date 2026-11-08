@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-950 text-slate-100 select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DartMaster">
+  <title>Dart Master Pro - Compteur & Progression iPad</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Inter:wght@400;600;800&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .font-score {
+      font-family: 'Chakra Petch', monospace, sans-serif;
+    }
+
+    /* Glows & Neon effects */
+    .glow-amber {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+    }
+    .text-glow {
+      text-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+    }
+
+    /* Custom Touch Button click feedback */
+    .btn-touch:active {
+      transform: scale(0.96);
+    }
+
+    /* Hide scrollbars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-zinc-950">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="flex-none px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between backdrop-blur-md z-30">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+        <i class="fa-solid fa-bullseye text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-extrabold tracking-wide text-white flex items-center gap-2">
+          DART<span class="text-amber-400">MASTER</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 uppercase tracking-wider" id="gameModeBadge">X01</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium" id="gameSubtitle">501 - Double Out</p>
+      </div>
+    </div>
+
+    <!-- Actions & Modals -->
+    <div class="flex items-center space-x-2">
+      <!-- Progression & Stats Button -->
+      <button onclick="openHistoryModal()" class="h-11 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 flex items-center gap-2 transition font-semibold shadow">
+        <i class="fa-solid fa-chart-line text-lg"></i>
+        <span class="hidden sm:inline text-sm font-bold text-slate-200">Progression</span>
+      </button>
+
+      <button onclick="toggleAudio()" id="btnAudio" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700/60 transition shadow">
+        <i class="fa-solid fa-volume-high text-lg"></i>
+      </button>
+
+      <button onclick="undoLastAction()" class="h-11 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-2 border border-slate-700/60 transition font-semibold shadow">
+        <i class="fa-solid fa-rotate-left text-amber-400"></i>
+        <span class="hidden sm:inline text-sm">Annuler</span>
+      </button>
+
+      <button onclick="openNewGameModal()" class="h-11 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold flex items-center gap-2 shadow-lg shadow-amber-500/25 transition">
+        <i class="fa-solid fa-sliders"></i>
+        <span class="text-sm">Partie</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-hidden p-2 sm:p-3 gap-2 sm:gap-3">
+    
+    <!-- LEFT PANEL: SCOREBOARD & STATS (VISIBLE FROM AFAR) -->
+    <section class="flex-1 flex flex-col bg-slate-900/60 rounded-2xl border border-slate-800/80 p-3 sm:p-4 overflow-hidden relative backdrop-blur-sm shadow-xl">
+      
+      <!-- Players Carousel / Grid -->
+      <div id="playersContainer" class="flex-1 flex gap-3 overflow-x-auto no-scrollbar items-stretch pb-2">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Checkout Banner (X01 only) -->
+      <div id="checkoutCard" class="mt-2 py-2.5 px-4 bg-emerald-950/40 border border-emerald-500/30 rounded-xl flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+            <i class="fa-solid fa-route"></i> Finition conseillée:
+          </span>
+          <span id="checkoutSuggestion" class="font-score text-lg sm:text-xl font-bold text-emerald-300 tracking-wider">
+            T20, T20, Bull (170)
+          </span>
+        </div>
+        <span id="checkoutModeBadge" class="text-xs text-emerald-400/80 hidden sm:inline font-medium">Double Out</span>
+      </div>
+
+      <!-- Live Leg History / Mini-feed -->
+      <div class="mt-2.5 flex items-center justify-between text-xs text-slate-400 px-2">
+        <div class="flex items-center gap-3">
+          <span id="turnCounter" class="font-semibold text-slate-300">Volée #1</span>
+          <span class="text-slate-600">•</span>
+          <span id="lastDartsSummary">Dernière volée: <b class="text-slate-200">-</b></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>Match: <span id="legScoreInfo" class="font-bold text-amber-400">1st Leg</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: INTERACTIVE TACTILE KEYPAD (OPTIMIZED FOR IPAD) -->
+    <section class="w-full md:w-[420px] lg:w-[460px] flex-none flex flex-col bg-slate-900/90 rounded-2xl border border-slate-800 p-3 sm:p-4 shadow-2xl backdrop-blur-md">
+      
+      <!-- Input Mode Switcher -->
+      <div class="flex bg-slate-950/80 p-1 rounded-xl mb-3 border border-slate-800 text-xs font-bold">
+        <button id="tabDartByDart" onclick="setInputMode('dartByDart')" class="flex-1 py-2 rounded-lg transition text-slate-300 hover:text-white flex items-center justify-center gap-2">
+          <i class="fa-solid fa-bullseye"></i> Flèche par Flèche
+        </button>
+        <button id="tabTurnScore" onclick="setInputMode('turnScore')" class="flex-1 py-2 rounded-lg transition text-slate-300 hover:text-white flex items-center justify-center gap-2">
+          <i class="fa-solid fa-calculator"></i> Score Direct
+        </button>
+      </div>
+
+      <!-- MODE 1: DART BY DART INPUT -->
+      <div id="panelDartByDart" class="flex-1 flex flex-col">
+        <!-- 3 Darts Current Turn Indicator -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div id="dartSlot0" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center transition">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Flèche 1</span>
+            <span class="font-score text-xl font-bold text-amber-400 slot-text">-</span>
+          </div>
+          <div id="dartSlot1" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center transition">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Flèche 2</span>
+            <span class="font-score text-xl font-bold text-amber-400 slot-text">-</span>
+          </div>
+          <div id="dartSlot2" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center transition">
+            <span class="text-[10px] uppercase font-bold text-slate-500 block">Flèche 3</span>
+            <span class="font-score text-xl font-bold text-amber-400 slot-text">-</span>
+          </div>
+        </div>
+
+        <!-- Multipliers: Single / Double / Triple -->
+        <div class="grid grid-cols-3 gap-2 mb-2.5">
+          <button onclick="setMultiplier(1)" id="btnMult1" class="btn-touch py-3 rounded-xl font-bold text-sm bg-amber-500 text-slate-950 shadow-md">SIMPLE</button>
+          <button onclick="setMultiplier(2)" id="btnMult2" class="btn-touch py-3 rounded-xl font-bold text-sm bg-slate-800 text-emerald-400 border border-slate-700/70">DOUBLE</button>
+          <button onclick="setMultiplier(3)" id="btnMult3" class="btn-touch py-3 rounded-xl font-bold text-sm bg-slate-800 text-rose-400 border border-slate-700/70">TRIPLE</button>
+        </div>
+
+        <!-- Numbers Grid (1 to 20 + Specials) -->
+        <div class="grid grid-cols-5 gap-1.5 sm:gap-2 flex-1">
+          <button onclick="handleDartValue(20)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">20</button>
+          <button onclick="handleDartValue(1)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">1</button>
+          <button onclick="handleDartValue(18)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">18</button>
+          <button onclick="handleDartValue(4)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">4</button>
+          <button onclick="handleDartValue(13)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">13</button>
+
+          <button onclick="handleDartValue(6)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">6</button>
+          <button onclick="handleDartValue(10)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">10</button>
+          <button onclick="handleDartValue(15)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">15</button>
+          <button onclick="handleDartValue(2)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">2</button>
+          <button onclick="handleDartValue(17)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">17</button>
+
+          <button onclick="handleDartValue(3)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">3</button>
+          <button onclick="handleDartValue(19)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">19</button>
+          <button onclick="handleDartValue(7)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">7</button>
+          <button onclick="handleDartValue(16)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">16</button>
+          <button onclick="handleDartValue(8)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">8</button>
+
+          <button onclick="handleDartValue(11)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">11</button>
+          <button onclick="handleDartValue(14)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">14</button>
+          <button onclick="handleDartValue(9)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">9</button>
+          <button onclick="handleDartValue(12)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">12</button>
+          <button onclick="handleDartValue(5)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-xl font-bold rounded-xl flex items-center justify-center border border-slate-700/40">5</button>
+        </div>
+
+        <!-- Bull / Bullseye / Miss Bar -->
+        <div class="grid grid-cols-3 gap-2 mt-2">
+          <button onclick="handleDartSpecial('miss')" class="btn-touch py-3 rounded-xl font-bold text-sm bg-slate-800/90 text-rose-300 border border-rose-900/40">
+            <i class="fa-solid fa-xmark mr-1"></i> MANQUÉ (0)
+          </button>
+          <button onclick="handleDartSpecial('bull')" class="btn-touch py-3 rounded-xl font-bold text-sm bg-emerald-950/80 text-emerald-300 border border-emerald-600/50">
+            BULL (25)
+          </button>
+          <button onclick="handleDartSpecial('doubleBull')" class="btn-touch py-3 rounded-xl font-bold text-sm bg-rose-950/80 text-rose-300 border border-rose-600/50">
+            D-BULL (50)
+          </button>
+        </div>
+
+        <!-- Confirm Turn Button -->
+        <button onclick="confirmTurnDarts()" class="btn-touch mt-2.5 w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 rounded-xl font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25">
+          <span>VALIDER LA VOLÉE</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- MODE 2: TOTAL TURN SCORE INPUT (NUMPAD + PRESETS) -->
+      <div id="panelTurnScore" class="hidden flex-1 flex flex-col">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-right mb-2.5 flex items-center justify-between">
+          <span class="text-xs uppercase font-bold text-slate-500">Score de la volée</span>
+          <span id="turnScoreDisplay" class="font-score text-4xl font-extrabold text-amber-400">0</span>
+        </div>
+
+        <div class="grid grid-cols-5 gap-1.5 mb-2.5">
+          <button onclick="setTurnPreset(26)" class="btn-touch py-2 bg-slate-800 text-slate-300 font-bold rounded-lg text-sm border border-slate-700/60">26</button>
+          <button onclick="setTurnPreset(45)" class="btn-touch py-2 bg-slate-800 text-slate-300 font-bold rounded-lg text-sm border border-slate-700/60">45</button>
+          <button onclick="setTurnPreset(60)" class="btn-touch py-2 bg-slate-800 text-slate-300 font-bold rounded-lg text-sm border border-slate-700/60">60</button>
+          <button onclick="setTurnPreset(100)" class="btn-touch py-2 bg-slate-800 text-amber-400 font-bold rounded-lg text-sm border border-amber-500/30">100</button>
+          <button onclick="setTurnPreset(140)" class="btn-touch py-2 bg-slate-800 text-amber-400 font-bold rounded-lg text-sm border border-amber-500/30">140</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 flex-1">
+          <button onclick="numpadPress(1)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">1</button>
+          <button onclick="numpadPress(2)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">2</button>
+          <button onclick="numpadPress(3)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">3</button>
+          
+          <button onclick="numpadPress(4)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">4</button>
+          <button onclick="numpadPress(5)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">5</button>
+          <button onclick="numpadPress(6)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">6</button>
+          
+          <button onclick="numpadPress(7)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">7</button>
+          <button onclick="numpadPress(8)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">8</button>
+          <button onclick="numpadPress(9)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">9</button>
+          
+          <button onclick="numpadClear()" class="btn-touch bg-rose-950/60 text-rose-300 font-bold text-lg rounded-xl border border-rose-800/40">C</button>
+          <button onclick="numpadPress(0)" class="btn-touch bg-slate-800 hover:bg-slate-700 text-white font-score text-2xl font-bold rounded-xl border border-slate-700/60">0</button>
+          <button onclick="setTurnPreset(180)" class="btn-touch bg-gradient-to-tr from-amber-600 to-rose-600 text-white font-score text-xl font-extrabold rounded-xl shadow-lg shadow-amber-500/20">180!</button>
+        </div>
+
+        <button onclick="confirmTurnScoreDirect()" class="btn-touch mt-2.5 w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 rounded-xl font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25">
+          <span>VALIDER LE SCORE</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- MODAL: HISTORIQUE & PROGRESSION (NEW) -->
+  <div id="historyModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-5 border-b border-slate-800 flex-none">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center">
+            <i class="fa-solid fa-chart-line text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-white">Historique & Progression</h2>
+            <p class="text-xs text-slate-400">Évolution de votre moyenne et suivi des victoires</p>
+          </div>
+        </div>
+        <button onclick="closeHistoryModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-5 overflow-y-auto no-scrollbar space-y-6 flex-1">
+        
+        <!-- Global Stats Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+            <span class="text-[11px] font-bold uppercase text-slate-400">Parties jouées</span>
+            <div id="statTotalGames" class="font-score text-3xl font-extrabold text-white mt-1">0</div>
+            <span id="statWinRate" class="text-xs text-emerald-400 font-semibold">0% victoires</span>
+          </div>
+
+          <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+            <span class="text-[11px] font-bold uppercase text-slate-400">Record Moyenne (3D)</span>
+            <div id="statBestAvg" class="font-score text-3xl font-extrabold text-amber-400 mt-1">0.0</div>
+            <span class="text-xs text-slate-400">Points / volée</span>
+          </div>
+
+          <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+            <span class="text-[11px] font-bold uppercase text-slate-400">Total 180s</span>
+            <div id="statTotal180" class="font-score text-3xl font-extrabold text-rose-400 mt-1">0</div>
+            <span id="statTonsCount" class="text-xs text-slate-400">100+ : 0</span>
+          </div>
+
+          <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+            <span class="text-[11px] font-bold uppercase text-slate-400">Meilleur Checkout</span>
+            <div id="statBestCheckout" class="font-score text-3xl font-extrabold text-teal-400 mt-1">-</div>
+            <span class="text-xs text-slate-400">Double Out</span>
+          </div>
+        </div>
+
+        <!-- Progression Chart Section -->
+        <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-arrow-trend-up text-amber-400 text-sm"></i>
+              <h3 class="font-bold text-sm text-slate-200">Courbe de progression (Moyenne 3 flèches X01)</h3>
+            </div>
+            <span class="text-xs text-slate-400">15 dernières parties</span>
+          </div>
+          <div class="relative w-full h-44">
+            <canvas id="progressionCanvas" class="w-full h-full rounded-xl bg-slate-900/60"></canvas>
+            <div id="canvasEmptyMsg" class="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-medium">
+              Aucune partie X01 enregistrée pour afficher le graphique.
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Match History List -->
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Historique des Matchs
+            </h3>
+
+            <!-- Filter tabs -->
+            <div class="flex gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+              <button onclick="filterHistory('ALL')" id="filterALL" class="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold">Tous</button>
+              <button onclick="filterHistory('X01')" id="filterX01" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">X01</button>
+              <button onclick="filterHistory('CRICKET')" id="filterCRICKET" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Cricket</button>
+              <button onclick="filterHistory('TRAIN_CLOCK')" id="filterCLOCK" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Entraînement</button>
+            </div>
+          </div>
+
+          <!-- History items container -->
+          <div id="historyListContainer" class="space-y-2.5">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer action -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between flex-none">
+        <button onclick="clearMatchHistory()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-950/30 border border-rose-900/30">
+          <i class="fa-solid fa-trash-can"></i> Réinitialiser l'historique
+        </button>
+        <button onclick="closeHistoryModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold">
+          Fermer
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: NEW GAME / SETTINGS -->
+  <div id="newGameModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto no-scrollbar p-5 sm:p-7 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2.5">
+          <i class="fa-solid fa-sliders text-amber-400"></i> Nouvelle Partie & Entraînement
+        </h2>
+        <button onclick="closeNewGameModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Mode selection -->
+      <div class="mt-4">
+        <label class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Type de Jeu</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+          <div class="relative group">
+            <button onclick="selectModalGameType('X01')" id="btnOptX01" class="w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-amber-500/20 border-amber-500 text-amber-300">
+              X01 (501 / 301)
+            </button>
+            <button onclick="event.stopPropagation(); showModeRules('X01')" title="Règles du X01" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-700/80 hover:bg-amber-500 text-slate-300 hover:text-slate-950 text-[11px] font-bold flex items-center justify-center transition shadow">
+              <i class="fa-solid fa-info"></i>
+            </button>
+          </div>
+
+          <div class="relative group">
+            <button onclick="selectModalGameType('CRICKET')" id="btnOptCricket" class="w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-slate-800 border-slate-700 text-slate-300">
+              Cricket
+            </button>
+            <button onclick="event.stopPropagation(); showModeRules('CRICKET')" title="Règles du Cricket" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-700/80 hover:bg-amber-500 text-slate-300 hover:text-slate-950 text-[11px] font-bold flex items-center justify-center transition shadow">
+              <i class="fa-solid fa-info"></i>
+            </button>
+          </div>
+
+          <div class="relative group">
+            <button onclick="selectModalGameType('TRAIN_CLOCK')" id="btnOptClock" class="w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-slate-800 border-slate-700 text-slate-300">
+              Tour du Cadran
+            </button>
+            <button onclick="event.stopPropagation(); showModeRules('TRAIN_CLOCK')" title="Règles du Tour du Cadran" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-700/80 hover:bg-amber-500 text-slate-300 hover:text-slate-950 text-[11px] font-bold flex items-center justify-center transition shadow">
+              <i class="fa-solid fa-info"></i>
+            </button>
+          </div>
+
+          <div class="relative group">
+            <button onclick="selectModalGameType('TRAIN_BOBS27')" id="btnOptBobs27" class="w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-slate-800 border-slate-700 text-slate-300">
+              Bob's 27 (Doubles)
+            </button>
+            <button onclick="event.stopPropagation(); showModeRules('TRAIN_BOBS27')" title="Règles de Bob's 27" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-700/80 hover:bg-amber-500 text-slate-300 hover:text-slate-950 text-[11px] font-bold flex items-center justify-center transition shadow">
+              <i class="fa-solid fa-info"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- X01 Specific Options (Target & Double Out) -->
+      <div id="x01Options" class="mt-4 space-y-3">
+        <div>
+          <label class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Score Initial</label>
+          <div class="grid grid-cols-4 gap-2 mt-1">
+            <button onclick="setX01Target(301)" class="x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-slate-800 border-slate-700 text-slate-300">301</button>
+            <button onclick="setX01Target(501)" class="x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-amber-500/20 border-amber-500 text-amber-300">501</button>
+            <button onclick="setX01Target(701)" class="x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-slate-800 border-slate-700 text-slate-300">701</button>
+            <button onclick="setX01Target(901)" class="x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-slate-800 border-slate-700 text-slate-300">901</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+          <div>
+            <span class="font-bold text-sm text-slate-200 block">Double Out (Finition par un double)</span>
+            <span class="text-xs text-slate-400">Règle officielle des tournois PDC</span>
+          </div>
+          <input type="checkbox" id="chkDoubleOut" checked class="w-6 h-6 rounded accent-amber-500 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- Players Configuration -->
+      <div class="mt-5">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Joueurs (1 à 6)</label>
+          <button onclick="addPlayerField()" class="text-xs text-amber-400 font-bold hover:underline flex items-center gap-1">
+            <i class="fa-solid fa-user-plus"></i> Ajouter joueur
+          </button>
+        </div>
+        <div id="playerInputsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Dynamically filled with player input boxes -->
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="mt-6 pt-4 border-t border-slate-800 flex gap-3">
+        <button onclick="closeNewGameModal()" class="flex-1 py-3.5 rounded-xl bg-slate-800 font-bold text-slate-300 hover:bg-slate-700 transition">
+          Annuler
+        </button>
+        <button onclick="startNewGameFromModal()" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold shadow-lg shadow-amber-500/30 transition">
+          Lancer la partie
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELEBRATION OVERLAY -->
+  <div id="celebrationOverlay" class="fixed inset-0 pointer-events-none z-50 flex items-center justify-center hidden">
+    <div id="celebrationContent" class="transform scale-90 transition-all duration-300 text-center p-8 rounded-3xl bg-slate-900/90 border border-amber-500/50 shadow-2xl backdrop-blur-md">
+      <div id="celebrationIcon" class="text-6xl text-amber-400 mb-3 animate-bounce">🏆</div>
+      <h3 id="celebrationTitle" class="text-4xl sm:text-5xl font-black text-white font-score tracking-wider uppercase">VICTOIRE !</h3>
+      <p id="celebrationSubtitle" class="text-lg text-slate-300 mt-2 font-medium">Partie remportée avec brio</p>
+    </div>
+  </div>
+
+  <!-- MODAL: REGLES DU JEU -->
+  <div id="rulesModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 flex-none">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div>
+            <h3 id="rulesModalTitle" class="text-lg font-bold text-white">Règles du jeu</h3>
+            <span id="rulesModalSubtitle" class="text-xs text-amber-400 font-medium">Mode Officiel</span>
+          </div>
+        </div>
+        <button onclick="closeRulesModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="rulesModalContent" class="py-4 text-sm text-slate-300 space-y-3 overflow-y-auto no-scrollbar flex-1 leading-relaxed">
+        <!-- Rempli dynamiquement -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end flex-none">
+        <button onclick="closeRulesModal()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition">
+          J'ai compris
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* ==========================================================================
+       STORAGE KEYS & CHECKOUT TABLE
+       ========================================================================== */
+    const STORAGE_KEY = 'dartmaster_state_v2';
+    const HISTORY_KEY = 'dartmaster_history_v2';
+
+    const CHECKOUTS_DOUBLE = {
+      170: "T20, T20, Bull", 167: "T20, T19, Bull", 164: "T20, T18, Bull", 161: "T20, T17, Bull", 160: "T20, T20, D20",
+      158: "T20, T20, D19", 157: "T20, T19, D20", 156: "T20, T20, D18", 154: "T20, T18, D20", 153: "T20, T19, D18",
+      152: "T20, T20, D16", 151: "T20, T17, D20", 150: "T20, T18, D18", 149: "T20, T19, D16", 148: "T20, T20, D14",
+      147: "T20, T17, D18", 146: "T20, T18, D16", 145: "T20, T15, D20", 144: "T20, T20, D12", 143: "T20, T17, D16",
+      142: "T20, T14, D20", 141: "T20, T19, D12", 140: "T20, T20, D10", 139: "T20, T13, D20", 138: "T20, T18, D12",
+      137: "T19, T20, D10", 136: "T20, T20, D8",  135: "Bull, T15, D20", 134: "T20, T14, D16", 133: "T20, T19, D8",
+      132: "Bull, Bull, D16", 131: "T20, T13, D16", 130: "T20, T20, D5",  129: "T19, T20, D6",  128: "T18, T14, D16",
+      127: "T20, T17, D8",  126: "T19, 19, D25",  125: "25, T20, D20",  124: "T20, T16, D8",  123: "T19, T16, D9",
+      122: "T18, 18, D25",  121: "T20, T15, D8",  120: "T20, 20, D20",  119: "T19, 12, D25",  118: "T20, 18, D20",
+      117: "T20, 17, D20",  116: "T20, 16, D20",  115: "T20, 15, D20",  114: "T20, 14, D20",  113: "T19, 16, D20",
+      112: "T20, 12, D20",  111: "T20, 19, D16",  110: "T20, Bull",     109: "T20, 17, D16",  108: "T20, 16, D16",
+      107: "T19, Bull",     106: "T20, 10, D18",  105: "T20, 13, D16",  104: "T18, Bull",     103: "T20, 11, D16",
+      102: "T20, 10, D16",  101: "T17, Bull",     100: "T20, D20",      99: "T19, 10, D16",   98: "T20, D19",
+      97: "T19, D20",       96: "T20, D18",       95: "T19, D19",       94: "T18, D20",       93: "T19, D18",
+      92: "T20, D16",       91: "T17, D20",       90: "T18, D18",       89: "T19, D16",       88: "T16, D20",
+      87: "T17, D18",       86: "T18, D16",       85: "T15, D20",       84: "T20, D12",       83: "T17, D16",
+      82: "Bull, D16",      81: "T19, D12",       80: "T20, D10",       79: "T19, D11",       78: "T18, D12",
+      77: "T19, D10",       76: "T20, D8",        75: "T17, D12",       74: "T14, D16",       73: "T19, D8",
+      72: "T16, D12",       71: "T13, D16",       70: "T18, D8",        69: "T15, D12",       68: "T20, D4",
+      67: "T17, D8",        66: "T10, D18",       65: "25, D20",        64: "T16, D8",        63: "T13, D12",
+      62: "T10, D16",       61: "T15, D8",        60: "20, D20",        59: "19, D20",        58: "18, D20",
+      57: "17, D20",        56: "16, D20",        55: "15, D20",        54: "14, D20",        53: "13, D20",
+      52: "12, D20",        51: "11, D20",        50: "Bull",           49: "9, D20",         48: "16, D16",
+      47: "15, D16",        46: "14, D16",        45: "13, D16",        44: "12, D16",        43: "11, D16",
+      42: "10, D16",        41: "9, D16",         40: "D20",            39: "7, D16",         38: "D19",
+      37: "5, D16",         36: "D18",            35: "3, D16",         34: "D17",            33: "1, D16",
+      32: "D16",            31: "15, D8",         30: "D15",            29: "13, D8",         28: "D14",
+      27: "11, D8",         26: "D13",            25: "9, D8",          24: "D12",            23: "7, D8",
+      22: "D11",            21: "5, D8",          20: "D10",            19: "3, D8",          18: "D9",
+      17: "1, D8",          16: "D8",             15: "7, D4",          14: "D7",             13: "5, D4",
+      12: "D6",             11: "3, D4",          10: "D5",             9: "1, D4",           8: "D4",
+      7: "3, D2",           6: "D3",              5: "1, D2",           4: "D2",              3: "1, D1",
+      2: "D1"
+    };
+
+    /**
+     * Calcule le chemin optimal de finition en Simple Out (Straight Out) jusqu'à 180 points.
+     */
+    function getStraightOutCheckout(score) {
+      if (score <= 0 || score > 180) return null;
+
+      // 1 fléchette directe
+      if (score <= 20) return `${score}`;
+      if (score === 25) return "25 (Bull)";
+      if (score === 50) return "Bull (50)";
+      if (score % 2 === 0 && score <= 40) return `D${score / 2} (${score})`;
+      if (score % 3 === 0 && score <= 60) return `T${score / 3} (${score})`;
+
+      // 2 fléchettes
+      // Priorité à une grosse flèche initiale (T20, T19, T18, T17, 20)
+      const testDarts = [
+        { label: "T20", val: 60 },
+        { label: "T19", val: 57 },
+        { label: "T18", val: 54 },
+        { label: "Bull", val: 50 },
+        { label: "T17", val: 51 },
+        { label: "20", val: 20 },
+        { label: "25", val: 25 }
+      ];
+
+      for (const d1 of testDarts) {
+        const rem = score - d1.val;
+        if (rem > 0) {
+          if (rem <= 20) return `${d1.label}, ${rem}`;
+          if (rem === 25) return `${d1.label}, 25`;
+          if (rem === 50) return `${d1.label}, Bull`;
+          if (rem % 3 === 0 && rem <= 60) return `${d1.label}, T${rem / 3}`;
+          if (rem % 2 === 0 && rem <= 40) return `${d1.label}, D${rem / 2}`;
+        }
+      }
+
+      // 3 fléchettes (Jusqu'à 180)
+      for (const d1 of testDarts) {
+        for (const d2 of testDarts) {
+          const rem = score - d1.val - d2.val;
+          if (rem > 0) {
+            if (rem <= 20) return `${d1.label}, ${d2.label}, ${rem}`;
+            if (rem === 25) return `${d1.label}, ${d2.label}, 25`;
+            if (rem === 50) return `${d1.label}, ${d2.label}, Bull`;
+            if (rem % 3 === 0 && rem <= 60) return `${d1.label}, ${d2.label}, T${rem / 3}`;
+            if (rem % 2 === 0 && rem <= 40) return `${d1.label}, ${d2.label}, D${rem / 2}`;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    const CRICKET_NUMBERS = [20, 19, 18, 17, 16, 15, 'B'];
+
+    // Main Active Game State
+    let gameState = {
+      mode: 'X01', // 'X01', 'CRICKET', 'TRAIN_CLOCK', 'TRAIN_BOBS27'
+      targetScore: 501,
+      doubleOut: true,
+      audioEnabled: true,
+      activePlayerIndex: 0,
+      turnNumber: 1,
+      players: [
+        { id: 1, name: "Joueur 1", score: 501, dartsThrown: 0, legsWon: 0, history: [], cricketHits: {}, clockTarget: 1, bobsDouble: 1, tons100: 0, tons140: 0, tons180: 0, highestCheckout: 0 }
+      ],
+      historyStack: []
+    };
+
+    // Progression / Match History Storage
+    let matchHistory = [];
+    let currentHistoryFilter = 'ALL';
+
+    // Temp variables for the current turn
+    let currentMultiplier = 1;
+    let turnDarts = [];
+    let turnNumpadValue = "";
+    let inputMode = 'dartByDart';
+
+    // Audio Context
+    let audioCtx = null;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.15, vol = 0.15) {
+      if (!gameState.audioEnabled) return;
+      try {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playSoundEffect(type) {
+      if (!gameState.audioEnabled) return;
+      switch (type) {
+        case 'dart':
+          playTone(600, 'triangle', 0.08, 0.2);
+          break;
+        case 'bust':
+          playTone(180, 'sawtooth', 0.4, 0.25);
+          setTimeout(() => playTone(120, 'sawtooth', 0.4, 0.25), 180);
+          break;
+        case '180':
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            setTimeout(() => playTone(freq, 'square', 0.25, 0.2), idx * 120);
+          });
+          speakAnnounce("One hundred and eighty !");
+          break;
+        case 'win':
+          [440, 554, 659, 880].forEach((freq, idx) => {
+            setTimeout(() => playTone(freq, 'triangle', 0.35, 0.25), idx * 150);
+          });
+          speakAnnounce("Game shot and the match !");
+          break;
+      }
+    }
+
+    function speakAnnounce(text) {
+      if (!gameState.audioEnabled || !('speechSynthesis' in window)) return;
+      try {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'en-US';
+        utter.pitch = 0.9;
+        utter.rate = 1.0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utter);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      gameState.audioEnabled = !gameState.audioEnabled;
+      const btn = document.getElementById('btnAudio');
+      if (gameState.audioEnabled) {
+        btn.innerHTML = `<i class="fa-solid fa-volume-high text-lg text-amber-400"></i>`;
+        playTone(587, 'sine', 0.1);
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-lg text-slate-500"></i>`;
+      }
+      saveLocalState();
+    }
+
+    /* ==========================================================================
+       STORAGE & BACKUP
+       ========================================================================== */
+    function saveLocalState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      } catch (e) {}
+    }
+
+    function loadLocalState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.players && parsed.players.length > 0) {
+            gameState = parsed;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const savedHist = localStorage.getItem(HISTORY_KEY);
+        if (savedHist) {
+          matchHistory = JSON.parse(savedHist);
+        }
+      } catch (e) {}
+    }
+
+    function saveMatchToHistory(winner, details = {}) {
+      const matchRecord = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        mode: gameState.mode,
+        targetScore: gameState.targetScore,
+        winnerName: winner.name,
+        players: gameState.players.map(p => {
+          const avg3 = p.dartsThrown > 0 ? (((gameState.mode === 'X01' ? (gameState.targetScore - p.score) : p.score) / p.dartsThrown) * 3).toFixed(1) : "0.0";
+          return {
+            name: p.name,
+            score: p.score,
+            dartsThrown: p.dartsThrown,
+            avg3: parseFloat(avg3),
+            tons100: p.tons100 || 0,
+            tons140: p.tons140 || 0,
+            tons180: p.tons180 || 0,
+            highestCheckout: p.highestCheckout || 0
+          };
+        }),
+        winnerAvg3: winner.dartsThrown > 0 ? parseFloat((((gameState.mode === 'X01' ? gameState.targetScore : winner.score) / winner.dartsThrown) * 3).toFixed(1)) : 0,
+        totalDarts: winner.dartsThrown
+      };
+
+      matchHistory.unshift(matchRecord);
+      if (matchHistory.length > 100) matchHistory.pop(); // keep last 100
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(matchHistory));
+      } catch (e) {}
+    }
+
+    function saveStateForUndo() {
+      const clone = JSON.parse(JSON.stringify({
+        mode: gameState.mode,
+        targetScore: gameState.targetScore,
+        doubleOut: gameState.doubleOut,
+        activePlayerIndex: gameState.activePlayerIndex,
+        turnNumber: gameState.turnNumber,
+        players: gameState.players
+      }));
+      gameState.historyStack.push(clone);
+      if (gameState.historyStack.length > 25) {
+        gameState.historyStack.shift();
+      }
+    }
+
+    function undoLastAction() {
+      if (!gameState.historyStack || gameState.historyStack.length === 0) return;
+      const prev = gameState.historyStack.pop();
+      gameState.mode = prev.mode;
+      gameState.targetScore = prev.targetScore;
+      gameState.doubleOut = prev.doubleOut;
+      gameState.activePlayerIndex = prev.activePlayerIndex;
+      gameState.turnNumber = prev.turnNumber;
+      gameState.players = prev.players;
+
+      resetCurrentTurnInput();
+      updateUI();
+      saveLocalState();
+      playTone(400, 'sine', 0.1);
+    }
+
+    /* ==========================================================================
+       GAME INPUT LOGIC
+       ========================================================================== */
+    function setInputMode(mode) {
+      inputMode = mode;
+      const tabDart = document.getElementById('tabDartByDart');
+      const tabTurn = document.getElementById('tabTurnScore');
+      const panelDart = document.getElementById('panelDartByDart');
+      const panelTurn = document.getElementById('panelTurnScore');
+
+      if (mode === 'dartByDart') {
+        tabDart.className = "flex-1 py-2 rounded-lg transition bg-amber-500 text-slate-950 font-bold flex items-center justify-center gap-2";
+        tabTurn.className = "flex-1 py-2 rounded-lg transition text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-2";
+        panelDart.classList.remove('hidden');
+        panelTurn.classList.add('hidden');
+      } else {
+        tabTurn.className = "flex-1 py-2 rounded-lg transition bg-amber-500 text-slate-950 font-bold flex items-center justify-center gap-2";
+        tabDart.className = "flex-1 py-2 rounded-lg transition text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-2";
+        panelTurn.classList.remove('hidden');
+        panelDart.classList.add('hidden');
+      }
+    }
+
+    function setMultiplier(mult) {
+      currentMultiplier = mult;
+      ['btnMult1', 'btnMult2', 'btnMult3'].forEach((id, idx) => {
+        const btn = document.getElementById(id);
+        if (idx + 1 === mult) {
+          btn.className = "btn-touch py-3 rounded-xl font-bold text-sm bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300";
+        } else {
+          btn.className = "btn-touch py-3 rounded-xl font-bold text-sm bg-slate-800 text-slate-300 border border-slate-700/70";
+        }
+      });
+      playTone(450, 'sine', 0.05);
+    }
+
+    function handleDartValue(val) {
+      if (turnDarts.length >= 3) return;
+      const mult = currentMultiplier;
+      const score = val * mult;
+      let label = (mult === 2 ? 'D' : mult === 3 ? 'T' : 'S') + val;
+
+      turnDarts.push({ mult, val, score, label });
+      playSoundEffect('dart');
+      updateTurnDartsDisplay();
+      setMultiplier(1);
+
+      if (gameState.mode === 'X01') {
+        const p = gameState.players[gameState.activePlayerIndex];
+        const currentSum = turnDarts.reduce((acc, d) => acc + d.score, 0);
+        const rem = p.score - currentSum;
+        if (rem === 0) {
+          if (!gameState.doubleOut || mult === 2 || (val === 25 && mult === 2)) {
+            confirmTurnDarts();
+            return;
+          }
+        }
+      }
+    }
+
+    function handleDartSpecial(type) {
+      if (turnDarts.length >= 3) return;
+      if (type === 'miss') {
+        turnDarts.push({ mult: 0, val: 0, score: 0, label: 'MISS' });
+        playTone(200, 'sine', 0.1);
+      } else if (type === 'bull') {
+        turnDarts.push({ mult: 1, val: 25, score: 25, label: 'BULL' });
+        playSoundEffect('dart');
+      } else if (type === 'doubleBull') {
+        turnDarts.push({ mult: 2, val: 25, score: 50, label: 'D-BULL' });
+        playSoundEffect('dart');
+      }
+      setMultiplier(1);
+      updateTurnDartsDisplay();
+    }
+
+    function updateTurnDartsDisplay() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`dartSlot${i}`);
+        const txt = slot.querySelector('.slot-text');
+        if (turnDarts[i]) {
+          txt.textContent = turnDarts[i].label;
+          slot.classList.add('border-amber-500/80', 'bg-amber-500/10');
+        } else {
+          txt.textContent = '-';
+          slot.classList.remove('border-amber-500/80', 'bg-amber-500/10');
+        }
+      }
+    }
+
+    function resetCurrentTurnInput() {
+      turnDarts = [];
+      turnNumpadValue = "";
+      updateTurnDartsDisplay();
+      document.getElementById('turnScoreDisplay').textContent = "0";
+      setMultiplier(1);
+    }
+
+    function numpadPress(digit) {
+      if (turnNumpadValue.length >= 3) return;
+      turnNumpadValue += digit.toString();
+      const num = parseInt(turnNumpadValue, 10);
+      if (num > 180) turnNumpadValue = "180";
+      document.getElementById('turnScoreDisplay').textContent = turnNumpadValue;
+      playTone(500, 'sine', 0.05);
+    }
+
+    function numpadClear() {
+      turnNumpadValue = "";
+      document.getElementById('turnScoreDisplay').textContent = "0";
+      playTone(250, 'sine', 0.05);
+    }
+
+    function setTurnPreset(val) {
+      turnNumpadValue = val.toString();
+      document.getElementById('turnScoreDisplay').textContent = turnNumpadValue;
+      playTone(550, 'sine', 0.05);
+    }
+
+    function confirmTurnScoreDirect() {
+      const score = parseInt(turnNumpadValue, 10) || 0;
+      applyTurnScore(score, 3, [{ score: score, label: `${score} pts` }]);
+      resetCurrentTurnInput();
+    }
+
+    function confirmTurnDarts() {
+      if (turnDarts.length === 0) return;
+      const totalScore = turnDarts.reduce((acc, d) => acc + d.score, 0);
+      applyTurnScore(totalScore, turnDarts.length, [...turnDarts]);
+      resetCurrentTurnInput();
+    }
+
+    /* Apply Turn Score across game modes */
+    function applyTurnScore(totalTurnScore, dartsCount, details = []) {
+      saveStateForUndo();
+      const player = gameState.players[gameState.activePlayerIndex];
+      if (!player.tons100) player.tons100 = 0;
+      if (!player.tons140) player.tons140 = 0;
+      if (!player.tons180) player.tons180 = 0;
+      if (!player.highestCheckout) player.highestCheckout = 0;
+
+      // Track 100+, 140+, 180 milestones
+      if (totalTurnScore === 180) player.tons180 += 1;
+      else if (totalTurnScore >= 140) player.tons140 += 1;
+      else if (totalTurnScore >= 100) player.tons100 += 1;
+
+      if (gameState.mode === 'X01') {
+        const remaining = player.score - totalTurnScore;
+        const lastDart = details[details.length - 1] || { mult: 1, val: 0 };
+
+        let isBust = false;
+        if (remaining < 0) isBust = true;
+        if (gameState.doubleOut) {
+          if (remaining === 1) isBust = true;
+          if (remaining === 0 && lastDart.mult !== 2) isBust = true;
+        }
+
+        if (isBust) {
+          playSoundEffect('bust');
+          showCelebration("BUST !", "Score inchangé", "fa-ban", "text-rose-500");
+          player.history.unshift({ turn: gameState.turnNumber, score: 0, bust: true, darts: dartsCount });
+          player.dartsThrown += dartsCount;
+        } else {
+          const checkoutScore = player.score;
+          player.score = remaining;
+          player.dartsThrown += dartsCount;
+          player.history.unshift({ turn: gameState.turnNumber, score: totalTurnScore, bust: false, darts: dartsCount });
+
+          if (totalTurnScore === 180) {
+            playSoundEffect('180');
+            showCelebration("180 !", "Maximum exceptionnel !", "fa-fire", "text-amber-400");
+          }
+
+          // Check Win
+          if (player.score === 0) {
+            player.legsWon += 1;
+            if (checkoutScore > player.highestCheckout) player.highestCheckout = checkoutScore;
+            
+            // Save to Match Progression History
+            saveMatchToHistory(player);
+
+            playSoundEffect('win');
+            showCelebration(`${player.name.toUpperCase()} GAGNE !`, `En ${player.dartsThrown} fléchettes (Moy: ${(gameState.targetScore / player.dartsThrown * 3).toFixed(1)})`, "fa-trophy", "text-amber-400");
+            
+            setTimeout(() => {
+              resetScoresForNextLeg();
+            }, 1800);
+            updateUI();
+            saveLocalState();
+            return;
+          }
+        }
+      } else if (gameState.mode === 'CRICKET') {
+        details.forEach(dart => {
+          let target = dart.val;
+          if (target === 25) target = 'B';
+          if (CRICKET_NUMBERS.includes(target)) {
+            const hits = dart.mult || 1;
+            applyCricketHit(player, target, hits);
+          }
+        });
+        player.dartsThrown += dartsCount;
+        player.history.unshift({ turn: gameState.turnNumber, score: totalTurnScore, darts: dartsCount });
+        checkCricketWin();
+      } else if (gameState.mode === 'TRAIN_CLOCK') {
+        let hitsThisTurn = 0;
+        details.forEach(dart => {
+          let currentWanted = player.clockTarget;
+          let hit = false;
+          if (currentWanted <= 20 && dart.val === currentWanted) hit = true;
+          if (currentWanted === 21 && (dart.val === 25)) hit = true;
+          if (hit) {
+            player.clockTarget += 1;
+            hitsThisTurn++;
+            playTone(800, 'sine', 0.12);
+          }
+        });
+        player.dartsThrown += dartsCount;
+        player.score = player.clockTarget - 1;
+        player.history.unshift({ turn: gameState.turnNumber, score: hitsThisTurn, darts: dartsCount });
+
+        if (player.clockTarget > 21) {
+          saveMatchToHistory(player);
+          playSoundEffect('win');
+          showCelebration("TOUR TERMINÉ !", `En ${player.dartsThrown} fléchettes !`, "fa-bullseye", "text-emerald-400");
+          setTimeout(() => resetScoresForNextLeg(), 1800);
+        }
+      } else if (gameState.mode === 'TRAIN_BOBS27') {
+        // Mode Bob's 27 : calcul des points sur le double en cours
+        const currentD = player.bobsDouble || 1;
+        const doubleValue = currentD === 21 ? 50 : (currentD * 2);
+
+        // Compter combien de fois le double cible a été touché
+        let hitsOnTarget = 0;
+        details.forEach(dart => {
+          if (currentD <= 20 && dart.val === currentD && dart.mult === 2) hitsOnTarget++;
+          if (currentD === 21 && dart.val === 25 && dart.mult === 2) hitsOnTarget++;
+        });
+
+        let delta = 0;
+        if (hitsOnTarget > 0) {
+          delta = hitsOnTarget * doubleValue;
+          player.score += delta;
+          playTone(600 + (hitsOnTarget * 100), 'triangle', 0.18);
+        } else {
+          delta = -doubleValue;
+          player.score -= doubleValue;
+          playSoundEffect('bust');
+        }
+
+        player.dartsThrown += dartsCount;
+        player.history.unshift({ 
+          turn: gameState.turnNumber, 
+          target: currentD === 21 ? 'Bull' : `D${currentD}`,
+          hits: hitsOnTarget,
+          score: delta, 
+          darts: dartsCount 
+        });
+
+        // Détection Game Over (score <= 0)
+        if (player.score <= 0) {
+          player.score = 0;
+          showCelebration("GAME OVER", `Éliminé au D${currentD === 21 ? 'Bull' : currentD}`, "fa-skull-crossbones", "text-rose-500");
+          speakAnnounce("Game Over !");
+          saveMatchToHistory(player);
+          setTimeout(() => resetScoresForNextLeg(), 2000);
+          updateUI();
+          saveLocalState();
+          return;
+        }
+
+        // Passage au double suivant
+        player.bobsDouble += 1;
+
+        // Victoire si on termine le Bullseye (après 21)
+        if (player.bobsDouble > 21) {
+          saveMatchToHistory(player);
+          playSoundEffect('win');
+          showCelebration("BOB'S 27 TERMINÉ !", `Score Final Exceptionnel: ${player.score} pts`, "fa-trophy", "text-amber-400");
+          setTimeout(() => resetScoresForNextLeg(), 2200);
+        }
+      }
+
+      gameState.activePlayerIndex = (gameState.activePlayerIndex + 1) % gameState.players.length;
+      if (gameState.activePlayerIndex === 0) {
+        gameState.turnNumber += 1;
+      }
+
+      updateUI();
+      saveLocalState();
+    }
+
+    function applyCricketHit(activePlayer, targetKey, hitCount) {
+      if (!activePlayer.cricketHits[targetKey]) activePlayer.cricketHits[targetKey] = 0;
+      const currentHits = activePlayer.cricketHits[targetKey];
+      
+      const isClosedByAllOthers = gameState.players
+        .filter(p => p.id !== activePlayer.id)
+        .every(p => (p.cricketHits[targetKey] || 0) >= 3);
+
+      const neededToClose = Math.max(0, 3 - currentHits);
+      const hitsAppliedToClose = Math.min(hitCount, neededToClose);
+      activePlayer.cricketHits[targetKey] += hitsAppliedToClose;
+
+      const surplusHits = hitCount - hitsAppliedToClose;
+      if (surplusHits > 0 && !isClosedByAllOthers) {
+        const pointVal = targetKey === 'B' ? 25 : parseInt(targetKey, 10);
+        activePlayer.score += surplusHits * pointVal;
+      }
+    }
+
+    function checkCricketWin() {
+      gameState.players.forEach(p => {
+        const closedAll = CRICKET_NUMBERS.every(num => (p.cricketHits[num] || 0) >= 3);
+        const highestScore = gameState.players.every(other => p.score >= other.score);
+        if (closedAll && highestScore) {
+          saveMatchToHistory(p);
+          playSoundEffect('win');
+          showCelebration(`${p.name.toUpperCase()} GAGNE !`, `Cricket complété avec ${p.score} points !`, "fa-trophy", "text-amber-400");
+          setTimeout(() => resetScoresForNextLeg(), 1800);
+        }
+      });
+    }
+
+    function resetScoresForNextLeg() {
+      gameState.players.forEach(p => {
+        p.score = gameState.targetScore;
+        p.dartsThrown = 0;
+        p.cricketHits = {};
+        p.clockTarget = 1;
+        p.history = [];
+      });
+      gameState.turnNumber = 1;
+      gameState.activePlayerIndex = 0;
+      updateUI();
+    }
+
+    /* ==========================================================================
+       PROGRESSION & HISTORY DASHBOARD
+       ========================================================================== */
+    function openHistoryModal() {
+      document.getElementById('historyModal').classList.remove('hidden');
+      renderHistoryStats();
+      renderProgressionChart();
+      renderHistoryList();
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.add('hidden');
+    }
+
+    function filterHistory(type) {
+      currentHistoryFilter = type;
+      ['ALL', 'X01', 'CRICKET', 'CLOCK'].forEach(t => {
+        const btn = document.getElementById(`filter${t}`);
+        if (t === (type === 'TRAIN_CLOCK' ? 'CLOCK' : type)) {
+          btn.className = "px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white";
+        }
+      });
+      renderHistoryList();
+    }
+
+    function renderHistoryStats() {
+      const totalGames = matchHistory.length;
+      document.getElementById('statTotalGames').textContent = totalGames;
+
+      // Win rate of primary player (Joueur 1 or first registered player)
+      const primaryName = gameState.players[0] ? gameState.players[0].name : "Joueur 1";
+      const primaryWins = matchHistory.filter(m => m.winnerName === primaryName).length;
+      const winRate = totalGames > 0 ? Math.round((primaryWins / totalGames) * 100) : 0;
+      document.getElementById('statWinRate').textContent = `${winRate}% victoires (${primaryName})`;
+
+      // Best 3-dart average across all X01 matches
+      const x01Matches = matchHistory.filter(m => m.mode === 'X01' && m.winnerAvg3 > 0);
+      const bestAvg = x01Matches.length > 0 ? Math.max(...x01Matches.map(m => m.winnerAvg3)).toFixed(1) : "0.0";
+      document.getElementById('statBestAvg').textContent = bestAvg;
+
+      // Aggregate 180s & Tons
+      let total180 = 0;
+      let total100 = 0;
+      let bestCheckout = 0;
+
+      matchHistory.forEach(m => {
+        m.players.forEach(p => {
+          total180 += (p.tons180 || 0);
+          total100 += (p.tons100 || 0) + (p.tons140 || 0);
+          if (p.highestCheckout && p.highestCheckout > bestCheckout) {
+            bestCheckout = p.highestCheckout;
+          }
+        });
+      });
+
+      document.getElementById('statTotal180').textContent = total180;
+      document.getElementById('statTonsCount').textContent = `100+ : ${total100}`;
+      document.getElementById('statBestCheckout').textContent = bestCheckout > 0 ? bestCheckout : "-";
+    }
+
+    function renderHistoryList() {
+      const container = document.getElementById('historyListContainer');
+      container.innerHTML = "";
+
+      let filtered = matchHistory;
+      if (currentHistoryFilter !== 'ALL') {
+        filtered = matchHistory.filter(m => m.mode === currentHistoryFilter);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-xs">
+            Aucune partie terminée enregistrée dans cette catégorie.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const itemRow = document.createElement('div');
+        itemRow.className = "p-3.5 bg-slate-950/90 rounded-2xl border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+
+        let badge = "";
+        if (item.mode === 'X01') badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">X01 (${item.targetScore})</span>`;
+        else if (item.mode === 'CRICKET') badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Cricket</span>`;
+        else badge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Cadran</span>`;
+
+        itemRow.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400 font-bold text-sm">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-sm">${item.winnerName}</span>
+                ${badge}
+              </div>
+              <span class="text-[11px] text-slate-500">${item.date} • ${item.totalDarts} fléchettes lancées</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 text-right self-end sm:self-center">
+            ${item.mode === 'X01' ? `
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Moy. Vainqueur</span>
+                <span class="font-score text-base font-bold text-amber-400">${item.winnerAvg3}</span>
+              </div>
+            ` : ''}
+            <div class="text-xs text-slate-400">
+              ${item.players.map(p => `${p.name}: <b class="text-slate-200">${p.score} pts</b>`).join(' | ')}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(itemRow);
+      });
+    }
+
+    function renderProgressionChart() {
+      const canvas = document.getElementById('progressionCanvas');
+      const emptyMsg = document.getElementById('canvasEmptyMsg');
+      const ctx = canvas.getContext('2d');
+
+      // Filter only completed X01 matches (chronological order)
+      const x01Data = [...matchHistory]
+        .filter(m => m.mode === 'X01' && m.winnerAvg3 > 0)
+        .reverse()
+        .slice(-15);
+
+      if (x01Data.length < 2) {
+        emptyMsg.classList.remove('hidden');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      emptyMsg.classList.add('hidden');
+
+      // Adjust high DPI canvas resolution
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 25;
+
+      const points = x01Data.map(d => d.winnerAvg3);
+      const minVal = Math.max(0, Math.floor(Math.min(...points) - 5));
+      const maxVal = Math.ceil(Math.max(...points) + 5);
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw subtle grid lines
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.4)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = padding + (i * (height - padding * 2)) / 3;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+
+        // Label
+        const val = (maxVal - (i * (maxVal - minVal)) / 3).toFixed(0);
+        ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
+        ctx.font = "10px Chakra Petch, monospace";
+        ctx.fillText(val, 4, y + 3);
+      }
+
+      // Compute coordinate points
+      const stepX = (width - padding * 2) / (points.length - 1);
+      const coords = points.map((p, idx) => {
+        const x = padding + idx * stepX;
+        const y = height - padding - ((p - minVal) / (maxVal - minVal)) * (height - padding * 2);
+        return { x, y, val: p };
+      });
+
+      // Draw Gradient Area below curve
+      const gradient = ctx.createLinearGradient(0, padding, 0, height);
+      gradient.addColorStop(0, "rgba(245, 158, 11, 0.35)");
+      gradient.addColorStop(1, "rgba(245, 158, 11, 0.0)");
+
+      ctx.beginPath();
+      ctx.moveTo(coords[0].x, height - padding);
+      coords.forEach(pt => ctx.lineTo(pt.x, pt.y));
+      ctx.lineTo(coords[coords.length - 1].x, height - padding);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Draw Main Line
+      ctx.beginPath();
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      coords.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      // Draw Glowing Dots & Values
+      coords.forEach((pt, i) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#fbbf24";
+        ctx.fill();
+        ctx.strokeStyle = "#020617";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Value text over point
+        ctx.fillStyle = "#f1f5f9";
+        ctx.font = "bold 9px Chakra Petch, monospace";
+        ctx.fillText(pt.val, pt.x - 10, pt.y - 8);
+      });
+    }
+
+    function clearMatchHistory() {
+      if (confirm("Voulez-vous vraiment effacer tout l'historique des parties et statistiques ?")) {
+        matchHistory = [];
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistoryStats();
+        renderProgressionChart();
+        renderHistoryList();
+      }
+    }
+
+    /* ==========================================================================
+       UI RENDERING
+       ========================================================================== */
+    function updateUI() {
+      renderHeaderInfo();
+      renderPlayers();
+      renderCheckoutCard();
+    }
+
+    function renderHeaderInfo() {
+      const modeBadge = document.getElementById('gameModeBadge');
+      const subtitle = document.getElementById('gameSubtitle');
+      const checkoutCard = document.getElementById('checkoutCard');
+
+      if (gameState.mode === 'X01') {
+        modeBadge.textContent = 'X01';
+        subtitle.textContent = `${gameState.targetScore} • ${gameState.doubleOut ? 'Double Out' : 'Straight Out'}`;
+        checkoutCard.classList.remove('hidden');
+      } else if (gameState.mode === 'CRICKET') {
+        modeBadge.textContent = 'CRICKET';
+        subtitle.textContent = "15 à 20 + Bull";
+        checkoutCard.classList.add('hidden');
+      } else if (gameState.mode === 'TRAIN_CLOCK') {
+        modeBadge.textContent = 'ENTRAÎNEMENT';
+        subtitle.textContent = "Tour du Cadran (1 à 20 + Bull)";
+        checkoutCard.classList.add('hidden');
+      } else if (gameState.mode === 'TRAIN_BOBS27') {
+        modeBadge.textContent = "BOB'S 27";
+        subtitle.textContent = "Entraînement officiel aux doubles (D1 à Bull)";
+        checkoutCard.classList.add('hidden');
+      }
+
+      document.getElementById('turnCounter').textContent = `Volée #${gameState.turnNumber}`;
+
+      const prevIdx = (gameState.activePlayerIndex - 1 + gameState.players.length) % gameState.players.length;
+      const prevPlayer = gameState.players[prevIdx];
+      const lastAction = prevPlayer && prevPlayer.history && prevPlayer.history[0];
+      const summaryElem = document.getElementById('lastDartsSummary');
+      if (lastAction) {
+        summaryElem.innerHTML = `Dernière volée (${prevPlayer.name}): <b class="${lastAction.bust || lastAction.score < 0 ? 'text-rose-400' : 'text-emerald-400'}">${lastAction.bust ? 'BUST' : (lastAction.score >= 0 ? '+' : '') + lastAction.score + ' pts'}</b>`;
+      } else {
+        summaryElem.innerHTML = `Dernière volée: <b class="text-slate-400">-</b>`;
+      }
+    }
+
+    function renderPlayers() {
+      const container = document.getElementById('playersContainer');
+      container.innerHTML = "";
+
+      const activeIdx = gameState.activePlayerIndex;
+
+      gameState.players.forEach((player, idx) => {
+        const isActive = idx === activeIdx;
+        const avg3 = player.dartsThrown > 0 ? (( (gameState.mode === 'X01' ? (gameState.targetScore - player.score) : player.score) / player.dartsThrown) * 3).toFixed(1) : "0.0";
+
+        const card = document.createElement('div');
+        card.className = `flex-1 min-w-[220px] max-w-sm rounded-2xl p-4 flex flex-col justify-between transition duration-200 border ${
+          isActive 
+            ? 'bg-slate-900 border-amber-400/80 ring-2 ring-amber-400/40 glow-amber' 
+            : 'bg-slate-950/60 border-slate-800/80 opacity-80'
+        }`;
+
+        let topHtml = `
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-3 h-3 rounded-full ${isActive ? 'bg-amber-400 animate-pulse' : 'bg-slate-700'}"></span>
+              <h3 class="font-bold text-lg text-white truncate">${player.name}</h3>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold border border-slate-700/60">
+              Legs: <b class="text-amber-400">${player.legsWon}</b>
+            </span>
+          </div>
+        `;
+
+        let middleHtml = "";
+        if (gameState.mode === 'X01') {
+          middleHtml = `
+            <div class="my-auto py-3 text-center">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-slate-400">Restant</span>
+              <div class="font-score text-6xl sm:text-7xl font-extrabold ${isActive ? 'text-white text-glow' : 'text-slate-300'} my-1 tracking-tight">
+                ${player.score}
+              </div>
+              <div class="text-xs text-slate-400 flex justify-center gap-3 font-medium">
+                <span>Fléchettes: <b class="text-slate-200">${player.dartsThrown}</b></span>
+                <span>•</span>
+                <span>Moy. (3D): <b class="text-amber-400">${avg3}</b></span>
+              </div>
+            </div>
+          `;
+        } else if (gameState.mode === 'CRICKET') {
+          let gridRows = CRICKET_NUMBERS.map(num => {
+            const hits = player.cricketHits[num] || 0;
+            let mark = "-";
+            if (hits === 1) mark = "/";
+            if (hits === 2) mark = "X";
+            if (hits >= 3) mark = "⨂";
+            return `
+              <div class="flex items-center justify-between py-0.5 px-2 text-xs bg-slate-900/60 rounded">
+                <span class="font-bold text-slate-400">${num === 'B' ? 'BULL' : num}</span>
+                <span class="font-score font-bold ${hits >= 3 ? 'text-emerald-400' : 'text-amber-400'}">${mark}</span>
+              </div>
+            `;
+          }).join('');
+
+          middleHtml = `
+            <div class="my-auto py-1">
+              <div class="text-center mb-1">
+                <span class="text-xs uppercase font-extrabold text-slate-400">Score</span>
+                <div class="font-score text-4xl font-extrabold text-amber-400">${player.score}</div>
+              </div>
+              <div class="grid grid-cols-2 gap-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
+                ${gridRows}
+              </div>
+            </div>
+          `;
+        } else if (gameState.mode === 'TRAIN_BOBS27') {
+          const currentD = player.bobsDouble || 1;
+          const targetLabel = currentD === 21 ? 'BULL (50)' : `DOUBLE ${currentD}`;
+          const pen = currentD === 21 ? 50 : currentD * 2;
+          middleHtml = `
+            <div class="my-auto py-2 text-center">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-slate-400">Score en cours</span>
+              <div class="font-score text-6xl sm:text-7xl font-extrabold ${player.score <= 10 ? 'text-rose-400' : 'text-amber-400 text-glow'} my-1 tracking-tight">
+                ${player.score}
+              </div>
+              <div class="mt-2 py-1.5 px-3 rounded-xl bg-slate-950/80 border border-amber-500/30 inline-block">
+                <span class="text-[11px] uppercase font-bold text-slate-400">Cible : </span>
+                <span class="font-score font-bold text-emerald-400 text-base ml-1">${targetLabel}</span>
+                <span class="text-[10px] text-slate-500 ml-2">(-${pen} si raté)</span>
+              </div>
+            </div>
+          `;
+        } else {
+          const targetName = player.clockTarget > 20 ? 'BULL' : player.clockTarget;
+          middleHtml = `
+            <div class="my-auto py-4 text-center">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-emerald-400">Cible à toucher</span>
+              <div class="font-score text-6xl sm:text-7xl font-extrabold text-white text-glow my-2">
+                ${targetName}
+              </div>
+              <div class="text-xs text-slate-400 font-medium">
+                Fléchettes lancées: <b class="text-amber-400">${player.dartsThrown}</b>
+              </div>
+            </div>
+          `;
+        }
+
+        const lastTurn = player.history[0];
+        let footerHtml = `
+          <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Dernier tour:</span>
+            <span class="font-semibold text-slate-300">
+              ${lastTurn ? (lastTurn.bust ? '<span class="text-rose-400">Bust</span>' : `+${lastTurn.score} pts (${lastTurn.darts} fl.)`) : 'En attente'}
+            </span>
+          </div>
+        `;
+
+        card.innerHTML = topHtml + middleHtml + footerHtml;
+        card.onclick = () => {
+          gameState.activePlayerIndex = idx;
+          updateUI();
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function renderCheckoutCard() {
+      const activePlayer = gameState.players[gameState.activePlayerIndex];
+      const el = document.getElementById('checkoutSuggestion');
+      const box = document.getElementById('checkoutCard');
+      const modeBadge = document.getElementById('checkoutModeBadge');
+
+      const isDoubleOut = !!gameState.doubleOut;
+      if (modeBadge) {
+        modeBadge.textContent = isDoubleOut ? "Double Out" : "Straight Out";
+      }
+
+      let suggestion = null;
+
+      if (isDoubleOut) {
+        if (activePlayer.score <= 170) {
+          suggestion = CHECKOUTS_DOUBLE[activePlayer.score] || null;
+        }
+      } else {
+        // En Straight Out, tout score <= 180 peut être fini
+        if (activePlayer.score <= 180) {
+          suggestion = getStraightOutCheckout(activePlayer.score);
+        }
+      }
+
+      if (suggestion) {
+        box.classList.remove('opacity-40');
+        el.textContent = `${suggestion} (${activePlayer.score})`;
+      } else {
+        box.classList.add('opacity-40');
+        const maxFinishingScore = isDoubleOut ? 170 : 180;
+        el.textContent = activePlayer.score <= maxFinishingScore 
+          ? "Pas de finition directe" 
+          : `Score: ${activePlayer.score} (Réduire le score)`;
+      }
+    }
+
+    function showCelebration(title, sub, icon, colorClass = "text-amber-400") {
+      const overlay = document.getElementById('celebrationOverlay');
+      const box = document.getElementById('celebrationContent');
+      const iconElem = document.getElementById('celebrationIcon');
+      const titleElem = document.getElementById('celebrationTitle');
+      const subElem = document.getElementById('celebrationSubtitle');
+
+      iconElem.className = `fa-solid ${icon} text-6xl ${colorClass} mb-3 animate-bounce`;
+      titleElem.textContent = title;
+      subElem.textContent = sub;
+
+      overlay.classList.remove('hidden');
+      setTimeout(() => box.classList.remove('scale-90'), 20);
+
+      setTimeout(() => {
+        box.classList.add('scale-90');
+        setTimeout(() => overlay.classList.add('hidden'), 250);
+      }, 1600);
+    }
+
+    /* ==========================================================================
+       MODAL: NEW GAME SETUP
+       ========================================================================== */
+    let tempModalMode = 'X01';
+    let tempModalTarget = 501;
+
+    function openNewGameModal() {
+      document.getElementById('newGameModal').classList.remove('hidden');
+      renderPlayerInputs();
+    }
+
+    function closeNewGameModal() {
+      document.getElementById('newGameModal').classList.add('hidden');
+    }
+
+    function selectModalGameType(type) {
+      tempModalMode = type;
+      ['btnOptX01', 'btnOptCricket', 'btnOptClock', 'btnOptBobs27'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.className = "w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-slate-800 border-slate-700 text-slate-300";
+      });
+
+      const optX01Box = document.getElementById('x01Options');
+      if (type === 'X01') {
+        document.getElementById('btnOptX01').className = "w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-amber-500/20 border-amber-500 text-amber-300";
+        optX01Box.classList.remove('hidden');
+      } else if (type === 'CRICKET') {
+        document.getElementById('btnOptCricket').className = "w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-amber-500/20 border-amber-500 text-amber-300";
+        optX01Box.classList.add('hidden');
+      } else if (type === 'TRAIN_CLOCK') {
+        document.getElementById('btnOptClock').className = "w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-amber-500/20 border-amber-500 text-amber-300";
+        optX01Box.classList.add('hidden');
+      } else if (type === 'TRAIN_BOBS27') {
+        document.getElementById('btnOptBobs27').className = "w-full h-full py-3 px-2 pr-7 rounded-xl border text-center font-bold text-sm transition bg-amber-500/20 border-amber-500 text-amber-300";
+        optX01Box.classList.add('hidden');
+      }
+    }
+
+    const GAME_RULES_DATA = {
+      'X01': {
+        title: "X01 (301, 501, 701, 901)",
+        subtitle: "Règle officielle des tournois (PDC / WDF)",
+        html: `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <p class="font-bold text-white mb-1"><i class="fa-solid fa-bullseye text-amber-400 mr-1.5"></i>Objectif</p>
+            <p>Être le premier à réduire son score initial exactement à <strong>0</strong>.</p>
+          </div>
+          <div class="space-y-2">
+            <p class="font-bold text-white">Déroulement :</p>
+            <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <li>Chaque joueur lance une volée de <strong>3 fléchettes</strong> à tour de rôle.</li>
+              <li>Le total des points de la volée est soustrait du total restant.</li>
+            </ul>
+          </div>
+          <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-amber-200">
+            <p class="font-bold mb-1"><i class="fa-solid fa-flag-checkered mr-1.5"></i>Option Double Out :</p>
+            <p class="text-xs leading-relaxed text-amber-300/90">La dernière flèche qui atteint 0 doit impérativement être un <strong>Double</strong> ou le <strong>Double-Bull (50)</strong>. Si le joueur passe en dessous de 0 ou atteint 1, c'est un <em>Bust</em> (la volée est annulée).</p>
+          </div>
+        `
+      },
+      'CRICKET': {
+        title: "Cricket",
+        subtitle: "Stratégie et précision",
+        html: `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <p class="font-bold text-white mb-1"><i class="fa-solid fa-bullseye text-amber-400 mr-1.5"></i>Objectif</p>
+            <p>Ouvrir et fermer tous les segments clés (<strong>15, 16, 17, 18, 19, 20 et Bull</strong>) tout en ayant un score supérieur ou égal à ses adversaires.</p>
+          </div>
+          <div class="space-y-2">
+            <p class="font-bold text-white">Mécanique :</p>
+            <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <li>Il faut toucher <strong>3 fois</strong> chaque secteur pour l'ouvrir (Simple = 1 touche, Double = 2, Triple = 3).</li>
+              <li>Une fois ouvert chez vous, chaque touche supplémentaire sur ce segment vous rapporte des points, tant qu'au moins un adversaire ne l'a pas encore ouvert.</li>
+              <li>Quand <em>tous les joueurs</em> ont ouvert le même secteur, il est définitivement fermé et ne rapporte plus de points.</li>
+            </ul>
+          </div>
+        `
+      },
+      'TRAIN_CLOCK': {
+        title: "Tour du Cadran (Around the Clock)",
+        subtitle: "Entraînement régularité solo ou multijoueur",
+        html: `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <p class="font-bold text-white mb-1"><i class="fa-solid fa-bullseye text-amber-400 mr-1.5"></i>Objectif</p>
+            <p>Parcourir la cible dans l'ordre numérique croissant du <strong>1 jusqu'au 20</strong>, puis terminer par le <strong>Bull</strong>.</p>
+          </div>
+          <div class="space-y-2">
+            <p class="font-bold text-white">Règles :</p>
+            <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <li>Une flèche ne compte que si elle touche la cible en cours demandée.</li>
+              <li>Dès qu'un numéro est touché, la cible passe immédiatement au numéro suivant.</li>
+              <li>Le vainqueur est celui qui boucle le tour complet avec le moins de fléchettes possible.</li>
+            </ul>
+          </div>
+        `
+      },
+      'TRAIN_BOBS27': {
+        title: "Bob's 27",
+        subtitle: "Entraînement officiel aux Doubles (Bob Anderson)",
+        html: `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <p class="font-bold text-white mb-1"><i class="fa-solid fa-bullseye text-amber-400 mr-1.5"></i>Objectif</p>
+            <p>Terminer le parcours du <strong>Double 1 jusqu'au Bullseye (D25)</strong> sans que votre capital de points ne tombe à 0.</p>
+          </div>
+          <div class="space-y-2">
+            <p class="font-bold text-white">Calcul des points :</p>
+            <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <li>Vous démarrez la partie avec un capital fixe de <strong>27 points</strong>.</li>
+              <li>À chaque tour, vous lancez 3 flèches sur le double imposé (D1 au tour 1, D2 au tour 2...).</li>
+              <li>Chaque touche dans le double ajoute sa valeur à votre score (ex: 2 flèches dans le D10 = +40 pts).</li>
+              <li><strong>Pénalité :</strong> Si les 3 fléchettes ratent le double, la valeur du double est soustraite (ex: -20 pts pour D10).</li>
+            </ul>
+          </div>
+          <div class="bg-rose-950/40 border border-rose-900/50 p-3 rounded-xl text-rose-300 text-xs">
+            <strong>Game Over immédiat :</strong> Si votre score tombe à 0 ou en négatif à n'importe quel moment, la partie s'arrête !
+          </div>
+        `
+      }
+    };
+
+    function showModeRules(modeKey) {
+      const data = GAME_RULES_DATA[modeKey];
+      if (!data) return;
+      document.getElementById('rulesModalTitle').textContent = data.title;
+      document.getElementById('rulesModalSubtitle').textContent = data.subtitle;
+      document.getElementById('rulesModalContent').innerHTML = data.html;
+      document.getElementById('rulesModal').classList.remove('hidden');
+    }
+
+    function closeRulesModal() {
+      document.getElementById('rulesModal').classList.add('hidden');
+    }
+
+    function setX01Target(val) {
+      tempModalTarget = val;
+      document.querySelectorAll('.x01TargetBtn').forEach(btn => {
+        if (parseInt(btn.textContent) === val) {
+          btn.className = "x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-amber-500/20 border-amber-500 text-amber-300";
+        } else {
+          btn.className = "x01TargetBtn py-2.5 rounded-xl border text-sm font-bold bg-slate-800 border-slate-700 text-slate-300";
+        }
+      });
+    }
+
+    function renderPlayerInputs() {
+      const container = document.getElementById('playerInputsList');
+      container.innerHTML = "";
+
+      gameState.players.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2";
+        row.innerHTML = `
+          <input type="text" value="${p.name}" class="playerNameInput flex-1 bg-slate-950 border border-slate-800 px-3.5 py-2.5 rounded-xl text-white font-medium focus:outline-none focus:border-amber-500" placeholder="Nom joueur ${idx + 1}">
+          ${gameState.players.length > 1 ? `
+            <button onclick="removePlayerField(${idx})" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 flex items-center justify-center">
+              <i class="fa-solid fa-trash text-sm"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addPlayerField() {
+      if (gameState.players.length >= 6) return;
+      gameState.players.push({
+        id: Date.now(),
+        name: `Joueur ${gameState.players.length + 1}`,
+        score: tempModalTarget,
+        dartsThrown: 0,
+        legsWon: 0,
+        history: [],
+        cricketHits: {},
+        clockTarget: 1
+      });
+      renderPlayerInputs();
+    }
+
+    function removePlayerField(idx) {
+      if (gameState.players.length <= 1) return;
+      gameState.players.splice(idx, 1);
+      renderPlayerInputs();
+    }
+
+    function startNewGameFromModal() {
+      const inputs = document.querySelectorAll('.playerNameInput');
+      const newPlayers = [];
+      inputs.forEach((inp, i) => {
+        const name = inp.value.trim() || `Joueur ${i + 1}`;
+        newPlayers.push({
+          id: i + 1,
+          name: name,
+          score: tempModalMode === 'X01' ? tempModalTarget : (tempModalMode === 'TRAIN_BOBS27' ? 27 : 0),
+          dartsThrown: 0,
+          legsWon: 0,
+          history: [],
+          cricketHits: {},
+          clockTarget: 1,
+          bobsDouble: 1
+        });
+      });
+
+      gameState.mode = tempModalMode;
+      gameState.targetScore = tempModalTarget;
+      gameState.doubleOut = document.getElementById('chkDoubleOut').checked;
+      gameState.activePlayerIndex = 0;
+      gameState.turnNumber = 1;
+      gameState.players = newPlayers;
+      gameState.historyStack = [];
+
+      resetCurrentTurnInput();
+      closeNewGameModal();
+      updateUI();
+      saveLocalState();
+    }
+
+    /* ==========================================================================
+       STARTUP INIT
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLocalState();
+      updateUI();
+      setInputMode('dartByDart');
+      document.addEventListener('touchstart', function() {}, {passive: true});
+    });
+  </script>
+</body>
+</html>
